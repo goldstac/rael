@@ -6,9 +6,9 @@ const CONTEXTS = new Map<string, ChatMessage[]>();
 setInterval(
   () => {
     CONTEXTS.clear();
-    console.log("[Context] Cleared all conversation contexts (30 min reset)");
+    console.log("[Context] Cleared all conversation contexts (hourly reset)");
   },
-  30 * 60 * 1000,
+  60 * 60 * 1000,
 );
 
 export function getContext(userId: string): ChatMessage[] {
