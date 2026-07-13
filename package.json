@@ -27,21 +27,21 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@ai-sdk/groq": "4.0.2",
+    "@ai-sdk/groq": "^2.0.0",
+    "@devhub-io/latex-to-unicode": "^2.0.1",
     "@napi-rs/canvas": "^1.0.1",
     "@openrouter/ai-sdk-provider": "^2.9.1",
-    "ai": "7.0.8",
+    "ai": "^6.0.0",
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",
     "exa-js": "^2.15.0",
-    "latex-to-unicode": "^0.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^26.0.1",
+    "@types/node": "^24.0.15",
     "eslint": "^10.5.0",
     "globals": "^17.6.0",
-    "typescript": "^6.0.3"
+    "typescript": "^5.9.2"
   }
 }

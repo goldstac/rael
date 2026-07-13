@@ -14,7 +14,7 @@ const COOLDOWN_SECONDS = 3;
 const USER_COOLDOWNS = new Map();
 
 export default async (client: Client, message: Message) => {
-  if (!message || !message.guild || message.author?.bot) return;
+  if (!message || !message.guild || message.author.bot || !client.user) return;
 
   if (
     process.env.NODE_ENV?.toLowerCase() === "dev" &&
