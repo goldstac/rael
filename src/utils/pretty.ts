@@ -1,4 +1,4 @@
-import latexToUnicode from "latex-to-unicode";
+import { latexToUnicode } from "@devhub-io/latex-to-unicode";
 
 export function pretty(input: string) {
   let prettyOutput = input;
