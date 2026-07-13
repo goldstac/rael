@@ -3,11 +3,15 @@ import data from "../../../config.json" with { type: "json" };
 import askai from "../../commands/ai/askai.ts";
 import type { CommandCallbackOpts } from "../../types/command.ts";
 
-const { aiModePrefix } = data;
+const { aiModePrefix, devs } = data;
 
 export default async (client: Client, message: Message) => {
-  if (message.author.bot) return;
-  if (!client.user) return;
+  if (!message || !message.guild || message.author.bot) return;
+  if (
+    process.env.NODE_ENV?.toLowerCase() === "dev" &&
+    !devs.includes(message.author.id)
+  )
+    return;
 
   if (!message.content.startsWith(aiModePrefix)) return;
 

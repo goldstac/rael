@@ -1,10 +1,18 @@
 import type { Client, Message } from "discord.js";
+import data from "../../../config.json" with { type: "json" };
 import askai from "../../commands/ai/askai.ts";
 import type { CommandCallbackOpts } from "../../types/command.ts";
 
+const { devs } = data;
+
 export default async (client: Client, message: Message) => {
-  if (message.author.bot) return;
-  if (!client.user) return;
+  if (!message || !message.guild || message.author.bot || !client.user) return;
+
+  if (
+    process.env.NODE_ENV?.toLowerCase() === "dev" &&
+    !devs.includes(message.author.id)
+  )
+    return;
 
   if (!message.mentions.has(client.user)) return;
 
