@@ -1,7 +1,8 @@
 import { groq } from "@ai-sdk/groq";
 import { generateText, stepCountIs } from "ai";
+import type { ModelMessage } from "ai";
 import { MAX_QUESTION_CHARS } from "../../constants/askai.ts";
-import { MODELS, VISION_MODEL_ID } from "../../constants/model.ts";
+import { MODELS } from "../../constants/model.ts";
 import { SYSTEM_PROMPT } from "../../prompts/base.ts";
 import { tools } from "../../tools/index.ts";
 import type { CommandCallbackOpts } from "../../types/command.ts";
@@ -14,20 +15,21 @@ import { canUseAI, formatTimeLeft, setUsage } from "../../utils/usage.ts";
 
 export let CURRENT_MODEL_INDEX = 0;
 
+const processedMessages = new WeakSet<object>();
+
+type ChatMessages = ModelMessage[];
+
 export default {
   name: "askai",
   description: "Ask the AI model",
   aliases: ["ai", "ask"],
   async execute({ message, args, ctx }: CommandCallbackOpts) {
     if (message.author.bot) return;
+    if (processedMessages.has(message)) return;
+    processedMessages.add(message);
 
-    if ((message as any)._processedByAskai) return;
-    (message as any)._processedByAskai = true;
-
-    const { imageUrl, mimeType } = getAttachmentData(message);
-    const question = parseQuestion(args, !!imageUrl);
-
-    if (!question && !imageUrl) return;
+    const question = args.join(" ").trim();
+    if (!question) return;
 
     if (question.length > MAX_QUESTION_CHARS) {
       await message.reply(
@@ -48,63 +50,49 @@ export default {
       return;
     }
 
-    if ("sendTyping" in message?.channel) await message.channel.sendTyping();
-
-    const contentBlocks = buildContentBlocks(question, imageUrl, mimeType);
-    let systemPrompt =
-      SYSTEM_PROMPT +
-      `\n- Current Channel ID: "${message.channelId}"\n- Current Message ID: "${message.id}"`;
-
-    if (ctx) {
-      systemPrompt += `\n\nThe user is replying to this message (your message):\n"${sanitizeForPrompt(ctx)}"`;
+    try {
+      if (message.channel && "sendTyping" in message.channel) {
+        await message.channel.sendTyping();
+      }
+    } catch (error) {
+      console.error("[askai] Failed to send typing indicator:", error);
     }
 
-    const history = getContext(userId);
-    addToContext(userId, "user", question);
+    try {
+      let systemPrompt =
+        SYSTEM_PROMPT +
+        `\n- Current Channel ID: "${message.channelId}"\n- Current Message ID: "${message.id}"`;
 
-    const currentUserContent = imageUrl ? contentBlocks : question;
+      if (ctx) {
+        systemPrompt += `\n\nThe user is replying to this message (your message):\n"${sanitizeForPrompt(ctx)}"`;
+      }
 
-    const messages = [
-      ...history.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      { role: "user" as const, content: currentUserContent },
-    ];
+      const history = getContext(userId);
+      addToContext(userId, "user", question);
 
-    let result = await executeAiRequest(systemPrompt, !!imageUrl, messages);
-
-    if (!result?.text && imageUrl && question) {
-      const fallbackMessages = [
-        ...history.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
-        { role: "user" as const, content: question },
+      const messages: ChatMessages = [
+        ...(Array.isArray(history)
+          ? history.map(({ role, content }) => ({ role, content }))
+          : []),
+        { role: "user", content: question },
       ];
 
-      result = await executeAiRequest(
-        systemPrompt +
-          `\n\n(Note: an image was attached but could not be processed. Answer based on the text only, and briefly mention you couldn't view the image.)`,
-        false,
-        fallbackMessages,
-      );
-    }
+      const result = await executeAiRequest(systemPrompt, messages);
 
-    if (result?.text) {
+      if (!result?.text) {
+        await message.reply(
+          "Sorry, I encountered an issue processing your request right now.",
+        );
+        return;
+      }
+
       addToContext(userId, "assistant", result.text);
+      await message.reply({ content: pretty(result.text) });
 
-      await message.reply({
-        content: pretty(result.text),
-      });
-
-      /// token usage
       const tokensUsedByModel = result.usage?.totalTokens ?? 0;
       if (tokensUsedByModel > 0) {
         await setUsage(userId, tokensUsedByModel);
       }
-
-      // stats
 
       const profile = {
         username: message.author.username,
@@ -118,89 +106,25 @@ export default {
       recordUsage(userId, profile, tokensUsedByModel).catch((err) => {
         console.error("[Stats] Failed to record usage:", err);
       });
-    } else {
-      await message.reply(
-        "Sorry, I encountered an issue processing your request right now.",
-      );
+    } catch (error) {
+      console.error("[askai] Unexpected error while handling request:", error);
+      await message
+        .reply(
+          "Sorry, I encountered an issue processing your request right now.",
+        )
+        .catch(() => {});
     }
   },
 };
 
-function getAttachmentData(message: any) {
-  const attachment = message.attachments?.find((a: any) =>
-    a.contentType?.startsWith("image/"),
-  );
-
-  return {
-    imageUrl: attachment?.url ?? null,
-    mimeType: attachment?.contentType ?? "",
-  };
-}
-
-function parseQuestion(args: string[], hasImage: boolean): string {
-  const question = args.join(" ").trim();
-  if (!question && hasImage) {
-    return "Describe the following image";
-  }
-  return question;
-}
-
-function buildContentBlocks(
-  question: string,
-  imageUrl: string | null,
-  mimeType: string,
-) {
-  const blocks: any[] = [{ type: "text", text: question }];
-
-  if (imageUrl) {
-    blocks.push({
-      type: "file",
-      data: imageUrl,
-      mediaType: mimeType,
-    });
-  }
-
-  return blocks;
-}
-
-async function executeAiRequest(
-  systemPrompt: string,
-  isVisionRequest: boolean,
-  messages: any[],
-) {
-  if (isVisionRequest) {
-    for (let i = 0; i < 2; i++) {
-      try {
-        const result = await generateText({
-          model: groq(VISION_MODEL_ID),
-          system: systemPrompt,
-          messages,
-          temperature: 0.9,
-          maxOutputTokens: 1024,
-          topP: 1,
-          stopWhen: stepCountIs(5),
-          tools,
-          toolChoice: "auto",
-        });
-
-        if (result.text) return result;
-        console.error("[FAIL] Vision model returned no text, attempt", i + 1);
-      } catch (error) {
-        console.error("[FAIL] Vision model exception, attempt", i + 1, error);
-      }
-    }
-    return null;
-  }
+async function executeAiRequest(systemPrompt: string, messages: ChatMessages) {
+  const modelCount = MODELS.length;
+  if (modelCount === 0) return null;
 
   const startIndex = CURRENT_MODEL_INDEX;
-  const tried = new Set<number>();
-  let lastGoodIndex: number | null = null;
 
-  for (let step = 0; step < MODELS.length; step++) {
-    const index = (startIndex + step) % MODELS.length;
-    if (tried.has(index)) continue;
-    tried.add(index);
-
+  for (let step = 0; step < modelCount; step++) {
+    const index = (startIndex + step) % modelCount;
     const modelConfig = MODELS[index];
     if (!modelConfig || !modelConfig.id) continue;
 
@@ -221,26 +145,19 @@ async function executeAiRequest(
 
       if (!result.text) {
         console.error(
-          `[FAIL] Model [${modelConfig.name}] returned no text, trying next.`,
+          `[askai] Model "${modelConfig.name}" returned no text, trying next.`,
         );
         continue;
       }
 
-      lastGoodIndex = index;
-      CURRENT_MODEL_INDEX = (index + 1) % MODELS.length;
+      CURRENT_MODEL_INDEX = (index + 1) % modelCount;
       return result;
     } catch (error) {
-      console.error(
-        `[FAIL] Model [${modelConfig.name}] hit an exception or quota limit. Error:`,
-        error,
-      );
+      console.error(`[askai] Model "${modelConfig.name}" failed:`, error);
     }
   }
 
-  if (lastGoodIndex === null) {
-    CURRENT_MODEL_INDEX = (startIndex + 1) % MODELS.length;
-  }
-
+  CURRENT_MODEL_INDEX = (startIndex + 1) % modelCount;
   return null;
 }
 
