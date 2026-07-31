@@ -13,8 +13,6 @@ import { sanitizeForPrompt } from "../../utils/sanitize.ts";
 import { recordUsage } from "../../utils/stats.ts";
 import { canUseAI, formatTimeLeft, setUsage } from "../../utils/usage.ts";
 
-export let CURRENT_MODEL_INDEX = 0;
-
 const processedMessages = new WeakSet<object>();
 
 type ChatMessages = ModelMessage[];
@@ -81,7 +79,7 @@ export default {
 
       if (!result?.text) {
         await message.reply(
-          "Sorry, I encountered an issue processing your request right now.",
+          "All models are currently rate-limited or unavailable. Please try again in a bit.",
         );
         return;
       }
@@ -118,21 +116,15 @@ export default {
 };
 
 async function executeAiRequest(systemPrompt: string, messages: ChatMessages) {
-  const modelCount = MODELS.length;
-  if (modelCount === 0) return null;
-
-  const startIndex = CURRENT_MODEL_INDEX;
-
-  for (let step = 0; step < modelCount; step++) {
-    const index = (startIndex + step) % modelCount;
-    const modelConfig = MODELS[index];
-    if (!modelConfig || !modelConfig.id) continue;
+  for (let index = 0; index < MODELS.length; index++) {
+    const modelId = MODELS[index];
+    if (!modelId) continue;
 
     try {
-      const provider = modelConfig.provider === "groq" ? groq : openRouter;
+      const provider = modelId.includes(":") ? openRouter : groq;
 
       const result = await generateText({
-        model: provider(modelConfig.id as string),
+        model: provider(modelId),
         system: systemPrompt,
         messages,
         temperature: 0.9,
@@ -145,22 +137,16 @@ async function executeAiRequest(systemPrompt: string, messages: ChatMessages) {
 
       if (!result.text) {
         console.error(
-          `[askai] Model "${modelConfig.name}" returned no text, trying next.`,
+          `[askai] Model "${modelId}" returned no text, trying next.`,
         );
         continue;
       }
 
-      CURRENT_MODEL_INDEX = (index + 1) % modelCount;
       return result;
     } catch (error) {
-      console.error(`[askai] Model "${modelConfig.name}" failed:`, error);
+      console.error(`[askai] Model "${modelId}" failed:`, error);
     }
   }
 
-  CURRENT_MODEL_INDEX = (startIndex + 1) % modelCount;
   return null;
-}
-
-export function resetIndex() {
-  CURRENT_MODEL_INDEX = 0;
 }
