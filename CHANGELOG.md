@@ -2,10 +2,13 @@
 
 ## `v2.0.1` - 2026-07-23
 
+### Changed
+
+- Removed vision support
+
 ### Fixed
 
 - `/askai` (`, <question>`) no longer shows a generic error when a model succeeds but returns no text (e.g. stops after a tool call). It now falls back to the next model instead.
-- Image questions retry as text-only if the vision model fails, instead of failing outright.
 - Fixed a race condition where concurrent `askai` command requests could interfere with each other's model fallback.
 
 ## `v2.0.0` - 2026-06-29
