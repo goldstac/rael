@@ -81,10 +81,6 @@ $clearctx
 
 Resetting clears conversation history and restores default behavior.
 
-## Vision
-
-Rael can read and understand images sent as attachments. Send an image along with a message and Rael will analyze the content and respond accordingly.
-
 ## Web Search
 
 Rael can search the web when you ask it to do so, to provide up to date information when needed, rather than relying solely on its training data.

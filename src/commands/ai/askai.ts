@@ -1,7 +1,8 @@
 import { groq } from "@ai-sdk/groq";
 import { generateText, stepCountIs } from "ai";
+import type { ModelMessage } from "ai";
 import { MAX_QUESTION_CHARS } from "../../constants/askai.ts";
-import { MODELS, VISION_MODEL_ID } from "../../constants/model.ts";
+import { MODELS } from "../../constants/model.ts";
 import { SYSTEM_PROMPT } from "../../prompts/base.ts";
 import { tools } from "../../tools/index.ts";
 import type { CommandCallbackOpts } from "../../types/command.ts";
@@ -12,7 +13,9 @@ import { sanitizeForPrompt } from "../../utils/sanitize.ts";
 import { recordUsage } from "../../utils/stats.ts";
 import { canUseAI, formatTimeLeft, setUsage } from "../../utils/usage.ts";
 
-export let CURRENT_MODEL_INDEX = 0;
+const processedMessages = new WeakSet<object>();
+
+type ChatMessages = ModelMessage[];
 
 export default {
   name: "askai",
@@ -20,14 +23,11 @@ export default {
   aliases: ["ai", "ask"],
   async execute({ message, args, ctx }: CommandCallbackOpts) {
     if (message.author.bot) return;
+    if (processedMessages.has(message)) return;
+    processedMessages.add(message);
 
-    if ((message as any)._processedByAskai) return;
-    (message as any)._processedByAskai = true;
-
-    const { imageUrl, mimeType } = getAttachmentData(message);
-    const question = parseQuestion(args, !!imageUrl);
-
-    if (!question && !imageUrl) return;
+    const question = args.join(" ").trim();
+    if (!question) return;
 
     if (question.length > MAX_QUESTION_CHARS) {
       await message.reply(
@@ -48,57 +48,49 @@ export default {
       return;
     }
 
-    if ("sendTyping" in message?.channel) await message.channel.sendTyping();
-
-    const contentBlocks = buildContentBlocks(question, imageUrl, mimeType);
-    let systemPrompt =
-      SYSTEM_PROMPT +
-      `\n- Current Channel ID: "${message.channelId}"\n- Current Message ID: "${message.id}"`;
-
-    if (ctx) {
-      systemPrompt += `\n\nThe user is replying to this message (your message):\n"${sanitizeForPrompt(ctx)}"`;
+    try {
+      if (message.channel && "sendTyping" in message.channel) {
+        await message.channel.sendTyping();
+      }
+    } catch (error) {
+      console.error("[askai] Failed to send typing indicator:", error);
     }
 
-    const history = getContext(userId);
-    addToContext(userId, "user", question);
+    try {
+      let systemPrompt =
+        SYSTEM_PROMPT +
+        `\n- Current Channel ID: "${message.channelId}"\n- Current Message ID: "${message.id}"`;
 
-    let currentUserContent: any;
+      if (ctx) {
+        systemPrompt += `\n\nThe user is replying to this message (your message):\n"${sanitizeForPrompt(ctx)}"`;
+      }
 
-    if (imageUrl) {
-      currentUserContent = contentBlocks;
-    } else {
-      currentUserContent = question;
-    }
+      const history = getContext(userId);
+      addToContext(userId, "user", question);
 
-    const messages = [
-      ...history.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      { role: "user" as const, content: currentUserContent },
-    ];
+      const messages: ChatMessages = [
+        ...(Array.isArray(history)
+          ? history.map(({ role, content }) => ({ role, content }))
+          : []),
+        { role: "user", content: question },
+      ];
 
-    const result = await executeAiRequest(
-      contentBlocks,
-      systemPrompt,
-      !!imageUrl,
-      messages,
-    );
+      const result = await executeAiRequest(systemPrompt, messages);
 
-    if (result?.text) {
+      if (!result?.text) {
+        await message.reply(
+          "All models are currently rate-limited or unavailable. Please try again in a bit.",
+        );
+        return;
+      }
+
       addToContext(userId, "assistant", result.text);
+      await message.reply({ content: pretty(result.text) });
 
-      await message.reply({
-        content: pretty(result.text),
-      });
-
-      /// token usage
       const tokensUsedByModel = result.usage?.totalTokens ?? 0;
       if (tokensUsedByModel > 0) {
         await setUsage(userId, tokensUsedByModel);
       }
-
-      // stats
 
       const profile = {
         username: message.author.username,
@@ -112,114 +104,49 @@ export default {
       recordUsage(userId, profile, tokensUsedByModel).catch((err) => {
         console.error("[Stats] Failed to record usage:", err);
       });
-    } else {
-      await message.reply(
-        "Sorry, I encountered an issue processing your request right now.",
-      );
+    } catch (error) {
+      console.error("[askai] Unexpected error while handling request:", error);
+      await message
+        .reply(
+          "Sorry, I encountered an issue processing your request right now.",
+        )
+        .catch(() => {});
     }
   },
 };
 
-function getAttachmentData(message: any) {
-  const attachment = message.attachments?.first();
-  const mimeType = attachment?.contentType || "";
-  const isImage = mimeType.startsWith("image/");
-
-  return {
-    imageUrl: isImage ? attachment.url : null,
-    mimeType,
-  };
-}
-
-function parseQuestion(args: string[], hasImage: boolean): string {
-  const question = args.join(" ").trim();
-  if (!question && hasImage) {
-    return "Describe the following image";
-  }
-  return question;
-}
-
-function buildContentBlocks(
-  question: string,
-  imageUrl: string | null,
-  mimeType: string,
-) {
-  const blocks: any[] = [{ type: "text", text: question }];
-
-  if (imageUrl) {
-    blocks.push({
-      type: "file",
-      data: imageUrl,
-      mediaType: mimeType,
-    });
-  }
-
-  return blocks;
-}
-
-async function executeAiRequest(
-  contentBlocks: any[],
-  systemPrompt: string,
-  isVisionRequest: boolean,
-  messages?: any[],
-) {
-  let attempts = 0;
-  let success = false;
-  let result = null;
-
-  while (attempts < MODELS.length && !success) {
-    const modelConfig = MODELS[CURRENT_MODEL_INDEX];
-
-    if (!modelConfig || !modelConfig.id) {
-      CURRENT_MODEL_INDEX = (CURRENT_MODEL_INDEX + 1) % MODELS.length;
-      attempts++;
-      continue;
-    }
+async function executeAiRequest(systemPrompt: string, messages: ChatMessages) {
+  for (let index = 0; index < MODELS.length; index++) {
+    const modelId = MODELS[index];
+    if (!modelId) continue;
 
     try {
-      const modelId = isVisionRequest
-        ? VISION_MODEL_ID
-        : (modelConfig.id as string);
+      const provider = modelId.includes(":") ? openRouter : groq;
 
-      const provider = isVisionRequest
-        ? groq
-        : modelConfig.provider === "groq"
-          ? groq
-          : openRouter;
-
-      result = await generateText({
+      const result = await generateText({
         model: provider(modelId),
         system: systemPrompt,
-        messages: messages || [{ role: "user", content: contentBlocks }],
+        messages,
         temperature: 0.9,
         maxOutputTokens: 1024,
         topP: 1,
-        stopWhen: stepCountIs(3),
-        tools: tools,
+        stopWhen: stepCountIs(5),
+        tools,
         toolChoice: "auto",
       });
 
-      success = true;
-
-      // console.log({ modelId, provider });
-    } catch (error) {
-      console.error(
-        `[FAIL] Model [${isVisionRequest ? "Vision Model" : modelConfig.name}] hit an exception or quota limit. Error:`,
-        error,
-      );
-
-      if (isVisionRequest) {
-        break;
+      if (!result.text) {
+        console.error(
+          `[askai] Model "${modelId}" returned no text, trying next.`,
+        );
+        continue;
       }
 
-      CURRENT_MODEL_INDEX = (CURRENT_MODEL_INDEX + 1) % MODELS.length;
-      attempts++;
+      return result;
+    } catch (error) {
+      console.error(`[askai] Model "${modelId}" failed:`, error);
     }
   }
 
-  return success ? result : null;
-}
-
-export function resetIndex() {
-  CURRENT_MODEL_INDEX = 0;
+  return null;
 }

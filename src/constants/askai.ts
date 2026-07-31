@@ -1,1 +1,1 @@
-export const MAX_QUESTION_CHARS = 1000;
+export const MAX_QUESTION_CHARS = 800;
