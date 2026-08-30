@@ -47,7 +47,7 @@ We welcome all kinds of contributions, whether it's fixing bugs, adding new feat
 
 ## 📖 Code of Conduct
 
-By contributing, you agree to uphold our [Looks like the result wasn't safe to show. Let's switch things up and try something else!].
+By contributing, you agree to uphold our [Code of Conduct](./CODE_OF_CONDUCT.md).
 We expect respectful communication and collaboration.
 
 ## 💡 Suggestions & Ideas
@@ -65,10 +65,6 @@ All contributors will be recognized in the project and may receive special roles
 
 ## 📜 License
 
-By contributing to this project, you agree that:
-
-- Your contributions will be licensed under the **DevHub Source-Available License (DSAL)**
-- DevHub may use, modify, and distribute your contributions as part of Rael
-- You do not gain any ownership, commercial, or hosting rights to Rael by contributing
+By contributing to this project, you agree that your contributions will be licensed under the [GNU GPL-3.0 License](./LICENSE).
 
 _Thank you for taking time to contribute to Rael ✨_
