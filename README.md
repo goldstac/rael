@@ -17,7 +17,7 @@
     <img src="https://img.shields.io/badge/AI%20SDK-6.0-black?style=flat-square" alt="AI SDK" />
     <img src="https://img.shields.io/badge/Groq-Fast%20Inference-7700FF?style=flat-square&logoColor=white" alt="Groq" />
     <img src="https://img.shields.io/badge/OpenRouter-Multi--Model-FF6B35?style=flat-square&logoColor=white" alt="OpenRouter" />
-    <img src="https://img.shields.io/badge/Exa-Search-00FF88?style=flat-square&logoColor=white" alt="Exa" />
+    <img src="https://img.shields.io/badge/Exa-Search-0D6B3F?style=flat-square&logoColor=white" alt="Exa" />
     <img src="https://img.shields.io/badge/Zod-Validation-3E68FF?style=flat-square&logo=zod&logoColor=white" alt="Zod" />
   </p>
 
