@@ -23,6 +23,10 @@ export default async (client: Client, message: Message) => {
     return message.reply("What's up?");
   }
 
+  if (content === "67") {
+    return message.reply("67 Six Seven!!! 😂");
+  }
+
   try {
     await askai.execute({ message, args } as CommandCallbackOpts);
   } catch (err) {
