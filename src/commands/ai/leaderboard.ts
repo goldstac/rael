@@ -31,7 +31,7 @@ export default {
 
       await message.reply({ files: [attachment] });
     } catch (err) {
-      console.error("Leaderboard command error:", err);
+      console.error("[Leaderboard] Command error:", err);
       await message.reply("Could not generate the leaderboard right now.");
     }
   },
