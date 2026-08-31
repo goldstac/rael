@@ -47,45 +47,6 @@ Rael is an AI-powered Discord bot built for natural conversation, multi-model fl
 > - Removed DevHub-specific prompt information, making Rael more general-purpose
 > - Added automatic ping suppression to prevent unintended user or role mentions
 
-## Getting Started
-
-### Prerequisites
-
-- [Bun](https://bun.sh) v1.2+
-- A Discord bot token
-- API keys for your preferred AI providers (Groq / OpenRouter)
-
-### Install & Run
-
-```bash
-git clone https://github.com/open-devhub/rael.git
-cd rael
-bun install
-bun run dev
-```
-
-### Docker
-
-```bash
-git clone https://github.com/open-devhub/rael.git
-cd rael
-```
-
-Create a `.env` file with your keys:
-
-```
-TOKEN=your-discord-bot-token
-GROQ_API_KEY=your-groq-key
-OPENROUTER_API_KEY=your-openrouter-key
-EXA_API_KEY=your-exa-key
-```
-
-Then run:
-
-```bash
-docker compose up -d
-```
-
 ## Usage
 
 Rael uses a prefix based interface with two modes of interaction.
