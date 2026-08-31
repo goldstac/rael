@@ -211,9 +211,7 @@ export interface LeaderboardEntry {
   currentStreak: number;
 }
 
-export async function getLeaderboard(
-  limit = 10,
-): Promise<LeaderboardEntry[]> {
+export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
   await loadStore();
 
   return Object.entries(store.users)

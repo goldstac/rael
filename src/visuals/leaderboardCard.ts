@@ -111,7 +111,8 @@ export async function renderLeaderboardCard(
   ensureFonts();
 
   try {
-    const height = HEADER_HEIGHT + opts.entries.length * ROW_HEIGHT + PADDING_BOTTOM;
+    const height =
+      HEADER_HEIGHT + opts.entries.length * ROW_HEIGHT + PADDING_BOTTOM;
     const canvas = createCanvas(WIDTH, height);
     const ctx = canvas.getContext("2d");
 
@@ -213,7 +214,11 @@ export async function renderLeaderboardCard(
       ctx.fillStyle = COLORS.muted;
       ctx.font = "22px Inter";
       ctx.textAlign = "right";
-      ctx.fillText(`${formatTokens(entry.lifetimeTokens)} tokens`, WIDTH - padX, rowCenterY);
+      ctx.fillText(
+        `${formatTokens(entry.lifetimeTokens)} tokens`,
+        WIDTH - padX,
+        rowCenterY,
+      );
       ctx.textAlign = "left";
     }
 
