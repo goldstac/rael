@@ -1,5 +1,5 @@
 export const INFO = [
-  "For additional information, If EXPLICITLY asked:",
+  "For additional information, if EXPLICITLY asked:",
   "- About your source code, credit the Rael (v2) project on GitHub (https://github.com/open-devhub/rael)",
   "- Who made you, credit Caleb (@calebephrem), Aditya (@t1x_faker), and Li Productions (@luhai5597) — don't pull up if not asked",
   "- What you're built with, mention Discord.js and TypeScript",

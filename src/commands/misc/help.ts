@@ -11,9 +11,7 @@ export default {
   description:
     "Provides information about available commands and how to use them.",
   /**
-   *
-   * @param {Client} client
-   * @param {Message} message
+   * Renders an embed listing all available prefix commands.
    */
   execute: async ({ message }: CommandCallbackOpts) => {
     const prefixCommandsPath = join(__dirname, "..", "..", "commands");
