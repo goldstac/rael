@@ -31,8 +31,8 @@ function ensureFonts() {
 
 const WIDTH = 1000;
 const ROW_HEIGHT = 56;
-const HEADER_HEIGHT = 140;
-const PADDING_BOTTOM = 80;
+const HEADER_HEIGHT = 160;
+const PADDING_BOTTOM = 50;
 
 const COLORS = {
   background: "#0a0a0a",
