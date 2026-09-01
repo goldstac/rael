@@ -76,6 +76,7 @@ $help
 $ping
 $usage
 $stats
+$leaderboard
 ```
 
 ## AI Command Usage
@@ -110,6 +111,7 @@ Users can view their token usage at any time through a clean, image based visual
 
 ```
 $usage
+$leaderboard
 ```
 
 ## Design Philosophy

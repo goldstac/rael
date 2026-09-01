@@ -201,3 +201,32 @@ export async function getUserStats(userId: string) {
     hasData: user.lifetimeTokens > 0,
   };
 }
+
+export interface LeaderboardEntry {
+  userId: string;
+  displayName: string;
+  username: string;
+  avatar: string;
+  lifetimeTokens: number;
+  currentStreak: number;
+}
+
+export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
+  await loadStore();
+
+  return Object.entries(store.users)
+    .filter(([, user]) => user.lifetimeTokens > 0)
+    .map(([userId, user]) => {
+      const { currentStreak } = computeStreaks(user.daily);
+      return {
+        userId,
+        displayName: user.displayName || user.username || "Unknown",
+        username: user.username || "unknown",
+        avatar: user.avatar || "",
+        lifetimeTokens: user.lifetimeTokens,
+        currentStreak,
+      };
+    })
+    .sort((a, b) => b.lifetimeTokens - a.lifetimeTokens)
+    .slice(0, limit);
+}
