@@ -148,9 +148,9 @@ export async function renderLeaderboardCard(
     ctx.lineTo(WIDTH - padX, HEADER_HEIGHT - 10);
     ctx.stroke();
 
-    // Preload top 3 avatars
+    // Preload all avatars
     const avatars = await Promise.all(
-      opts.entries.slice(0, 3).map((e) => loadAvatar(e.avatar)),
+      opts.entries.map((e) => loadAvatar(e.avatar)),
     );
 
     // Rows
@@ -174,9 +174,9 @@ export async function renderLeaderboardCard(
       ctx.textBaseline = "middle";
       ctx.fillText(`#${rank}`, padX, rowCenterY);
 
-      // Avatar for top 3
+      // Avatar
       let nameX: number;
-      if (rank <= 3 && avatars[i]) {
+      if (avatars[i]) {
         const avatarSize = 36;
         const avatarX = padX + 60;
         const avatarY = rowCenterY - avatarSize / 2;
