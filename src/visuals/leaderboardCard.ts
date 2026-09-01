@@ -31,7 +31,7 @@ function ensureFonts() {
 
 const WIDTH = 1000;
 const ROW_HEIGHT = 56;
-const HEADER_HEIGHT = 160;
+const HEADER_HEIGHT = 140;
 const PADDING_BOTTOM = 50;
 
 const COLORS = {
@@ -130,13 +130,13 @@ export async function renderLeaderboardCard(
     ctx.fillStyle = COLORS.text;
     ctx.font = "44px InterBold";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText("Leaderboard", padX, 65);
+    ctx.fillText("Leaderboard", padX, 90);
 
     if (opts.brand) {
       ctx.fillStyle = COLORS.muted;
       ctx.font = "34px InterSemiBold";
       ctx.textAlign = "right";
-      ctx.fillText(opts.brand, WIDTH - padX, 65);
+      ctx.fillText(opts.brand, WIDTH - padX, 90);
       ctx.textAlign = "left";
     }
 
