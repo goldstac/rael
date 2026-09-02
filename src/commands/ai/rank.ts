@@ -12,7 +12,7 @@ export default {
 
     try {
       const hasMention = message.mentions?.users?.first();
-      const hasArgs = args.length > 0;
+      const hasArgs = args && args.length > 0;
 
       if (hasArgs && !hasMention) {
         await message.reply(
