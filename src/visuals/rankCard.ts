@@ -1,4 +1,9 @@
-import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
+import {
+  createCanvas,
+  GlobalFonts,
+  loadImage,
+  type CanvasRenderingContext2D,
+} from "@napi-rs/canvas";
 import path from "path";
 import { fileURLToPath } from "url";
 import type { UserRank } from "../utils/stats.ts";
@@ -44,7 +49,7 @@ const COLORS = {
 };
 
 function roundRectPath(
-  ctx: any,
+  ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   w: number,
@@ -81,7 +86,11 @@ async function loadAvatar(url?: string | null) {
   }
 }
 
-function truncate(ctx: any, text: string, maxWidth: number): string {
+function truncate(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+): string {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let result = text;
   while (result.length > 1 && ctx.measureText(`${result}…`).width > maxWidth) {
