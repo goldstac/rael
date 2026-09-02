@@ -74,12 +74,28 @@ function formatTokens(value: number): string {
   return String(n);
 }
 
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+const AVATAR_TIMEOUT = 5000;
+const ALLOWED_HOSTS = ["cdn.discordapp.com", "media.discordapp.net"];
+
 async function loadAvatar(url?: string | null) {
   if (!url) return null;
   try {
+    const parsed = new URL(url);
+    if (!ALLOWED_HOSTS.includes(parsed.hostname)) return null;
+
     const pngUrl = url.replace(/\.(webp|gif)(\?|$)/i, ".png$2");
-    const res = await fetch(pngUrl);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), AVATAR_TIMEOUT);
+
+    const res = await fetch(pngUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
     if (!res.ok) return null;
+
+    const contentLength = Number(res.headers.get("content-length") || 0);
+    if (contentLength > MAX_AVATAR_SIZE) return null;
+
     return await loadImage(Buffer.from(await res.arrayBuffer()));
   } catch {
     return null;
