@@ -34,20 +34,18 @@ function ensureFonts() {
   }
 }
 
-const WIDTH = 800;
-const HEIGHT = 280;
+const WIDTH = 1000;
+const HEIGHT = 350;
 
 const COLORS = {
-  background: "#1a1a2e",
-  backgroundLight: "#16213e",
-  accent: "#3b82f6",
-  accentPurple: "#8b5cf6",
-  text: "#ffffff",
-  muted: "#a0a0a0",
-  mutedDark: "#7a7a7a",
-  border: "#ffffff",
-  rank1Gold: "#facc15",
-  barBg: "rgba(255,255,255,0.1)",
+  background: "#0a0a0a",
+  border: "#1c1c1e",
+  text: "#f2f2f2",
+  muted: "#7a7a7a",
+  divider: "#1c1c1e",
+  rank1: "#1d4ed8",
+  rank2: "#C0C0C0",
+  rank3: "#CD7F32",
 };
 
 function roundRectPath(
@@ -117,6 +115,13 @@ function truncate(
   return `${result}…`;
 }
 
+function rankColor(rank: number): string {
+  if (rank === 1) return COLORS.rank1;
+  if (rank === 2) return COLORS.rank2;
+  if (rank === 3) return COLORS.rank3;
+  return COLORS.muted;
+}
+
 export interface RankCardOptions {
   rank: UserRank;
   avatarUrl?: string | null;
@@ -130,40 +135,42 @@ export async function renderRankCard(opts: RankCardOptions): Promise<Buffer> {
     const canvas = createCanvas(WIDTH, HEIGHT);
     const ctx = canvas.getContext("2d");
 
-    // Background gradient
-    const bgGrad = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-    bgGrad.addColorStop(0, COLORS.background);
-    bgGrad.addColorStop(1, COLORS.backgroundLight);
-    ctx.fillStyle = bgGrad;
-    roundRectPath(ctx, 0, 0, WIDTH, HEIGHT, 20);
+    ctx.fillStyle = COLORS.background;
+    roundRectPath(ctx, 0, 0, WIDTH, HEIGHT, 28);
     ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = COLORS.border;
+    roundRectPath(ctx, 1, 1, WIDTH - 2, HEIGHT - 2, 28);
+    ctx.stroke();
 
-    // Left accent bar
-    const accentGrad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-    accentGrad.addColorStop(0, COLORS.accent);
-    accentGrad.addColorStop(1, COLORS.accentPurple);
-    ctx.fillStyle = accentGrad;
-    roundRectPath(ctx, 0, 0, 6, HEIGHT, 3);
-    ctx.fill();
+    const padX = 60;
 
-    // Avatar with white border
+    // Large rank number
+    const { rank } = opts.rank;
+    const rankStr = `#${rank}`;
+    const rankFontSize = rankStr.length > 3 ? 72 : 96;
+    ctx.fillStyle = rankColor(rank);
+    ctx.font = `${rankFontSize}px InterBold`;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ctx.fillText(rankStr, padX, HEIGHT / 2);
+
+    // Divider
+    const divX = padX + 200;
+    ctx.strokeStyle = COLORS.divider;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(divX, 40);
+    ctx.lineTo(divX, HEIGHT - 40);
+    ctx.stroke();
+
+    // Avatar
     const avatar = await loadAvatar(opts.avatarUrl);
-    const avatarSize = 130;
-    const avatarX = 100;
+    const avatarSize = 100;
+    const avatarX = divX + 30;
     const avatarY = HEIGHT / 2 - avatarSize / 2;
 
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(
-      avatarX + avatarSize / 2,
-      avatarY + avatarSize / 2,
-      avatarSize / 2 + 4,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fillStyle = COLORS.border;
-    ctx.fill();
-
     ctx.beginPath();
     ctx.arc(
       avatarX + avatarSize / 2,
@@ -177,117 +184,78 @@ export async function renderRankCard(opts: RankCardOptions): Promise<Buffer> {
     if (avatar) {
       ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
     } else {
-      ctx.fillStyle = COLORS.accent;
+      ctx.fillStyle = "#1d4ed8";
       ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
-      ctx.font = "bold 48px InterBold";
-      ctx.fillStyle = COLORS.text;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(
-        opts.rank.username.charAt(0).toUpperCase(),
-        avatarX + avatarSize / 2,
-        avatarY + avatarSize / 2,
-      );
     }
     ctx.restore();
 
-    // Text section
-    const textX = avatarX + avatarSize + 30;
-
     // Display name
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
+    const textX = avatarX + avatarSize + 24;
     ctx.fillStyle = COLORS.text;
-    ctx.font = "bold 32px InterBold";
+    ctx.font = "36px InterBold";
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
     ctx.fillText(
-      truncate(ctx, opts.rank.displayName || "Unknown", 300),
+      truncate(ctx, opts.rank.displayName || "Unknown", 400),
       textX,
-      90,
+      avatarY + 40,
     );
 
     // Username
-    ctx.font = "20px Inter";
     ctx.fillStyle = COLORS.muted;
-    ctx.fillText(`@${opts.rank.username}`, textX, 120);
+    ctx.font = "24px Inter";
+    ctx.fillText(`@${opts.rank.username}`, textX, avatarY + 72);
 
-    // Stats row
-    ctx.font = "18px Inter";
-    ctx.fillStyle = COLORS.accent;
-    ctx.fillText(`💬 ${formatTokens(opts.rank.tokens)} tokens`, textX, 165);
-    ctx.fillStyle = COLORS.mutedDark;
-    ctx.fillText(`🔥 ${opts.rank.currentStreak} day streak`, textX, 195);
+    // Stats (right side)
+    const statsX = WIDTH - padX;
+    ctx.textAlign = "right";
 
-    // Rank badge (top right)
-    const rankStr = `#${opts.rank.rank}`;
-    const rankBadgeW = rankStr.length > 3 ? 80 : 60;
-    const rankBadgeColor =
-      opts.rank.rank === 1
-        ? COLORS.rank1Gold
-        : opts.rank.rank <= 3
-          ? COLORS.accent
-          : COLORS.barBg;
-    ctx.fillStyle = rankBadgeColor;
-    roundRectPath(ctx, WIDTH - rankBadgeW - 30, 20, rankBadgeW, 34, 17);
-    ctx.fill();
-    ctx.font = "bold 16px InterBold";
-    ctx.fillStyle = opts.rank.rank <= 3 ? COLORS.text : COLORS.muted;
-    ctx.textAlign = "center";
-    ctx.fillText(rankStr, WIDTH - rankBadgeW / 2 - 30, 43);
+    ctx.fillStyle = COLORS.text;
+    ctx.font = "30px InterBold";
+    ctx.fillText(
+      `${formatTokens(opts.rank.lifetimeTokens)} tokens`,
+      statsX,
+      avatarY + 30,
+    );
 
-    // Progress bar
-    const barX = textX;
-    const barY = 220;
-    const barW = WIDTH - barX - 40;
-    const barH = 14;
+    ctx.fillStyle = COLORS.muted;
+    ctx.font = "22px Inter";
+    ctx.fillText(`${opts.rank.currentStreak} day streak`, statsX, avatarY + 60);
 
-    // Calculate progress
-    const progress =
-      opts.rank.rank <= 10
-        ? 0.9
-        : opts.rank.rank <= 50
-          ? 0.6
-          : opts.rank.rank <= 100
-            ? 0.4
-            : 0.2;
-
-    // Bar background
-    ctx.fillStyle = COLORS.barBg;
-    roundRectPath(ctx, barX, barY, barW, barH, 7);
-    ctx.fill();
-
-    // Bar fill
-    if (progress > 0) {
-      const fillGrad = ctx.createLinearGradient(
-        barX,
-        0,
-        barX + barW * progress,
-        0,
+    // Gap info
+    if (opts.rank.tokensBehind !== null && opts.rank.rankAbove !== null) {
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = "20px Inter";
+      ctx.fillText(
+        `${formatTokens(opts.rank.tokensBehind)} tokens behind #${opts.rank.rankAbove}`,
+        statsX,
+        avatarY + 92,
       );
-      fillGrad.addColorStop(0, COLORS.accent);
-      fillGrad.addColorStop(1, COLORS.accentPurple);
-      ctx.fillStyle = fillGrad;
-      roundRectPath(ctx, barX, barY, barW * progress, barH, 7);
-      ctx.fill();
+    } else if (opts.rank.rank === 1) {
+      ctx.fillStyle = rankColor(1);
+      ctx.font = "20px InterSemiBold";
+      ctx.fillText("Top of the leaderboard!", statsX, avatarY + 92);
     }
 
-    // Progress text
-    ctx.font = "13px Inter";
+    // Total users (bottom right)
     ctx.fillStyle = COLORS.muted;
+    ctx.font = "18px Inter";
     ctx.textAlign = "right";
     ctx.fillText(
-      `${opts.rank.rank} of ${opts.rank.totalUsers} users`,
-      WIDTH - 40,
-      barY + 12,
+      `Rank ${opts.rank.rank} of ${opts.rank.totalUsers} users`,
+      WIDTH - padX,
+      HEIGHT - 30,
     );
 
     // Brand
     if (opts.brand) {
-      ctx.fillStyle = COLORS.mutedDark;
-      ctx.font = "14px InterSemiBold";
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = "18px InterSemiBold";
       ctx.textAlign = "left";
-      ctx.fillText(opts.brand, barX, HEIGHT - 15);
+      ctx.fillText(opts.brand, padX, HEIGHT - 30);
     }
 
+    ctx.textAlign = "left";
     return canvas.toBuffer("image/png");
   } catch (err) {
     console.error("[RankCard] Failed to render rank card:", err);
