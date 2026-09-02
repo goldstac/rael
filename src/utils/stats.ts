@@ -230,3 +230,46 @@ export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
     .sort((a, b) => b.lifetimeTokens - a.lifetimeTokens)
     .slice(0, limit);
 }
+
+export interface UserRank {
+  rank: number;
+  totalUsers: number;
+  displayName: string;
+  username: string;
+  avatar: string;
+  lifetimeTokens: number;
+  currentStreak: number;
+  tokensBehind: number | null;
+  tokensAhead: number | null;
+  rankAbove: number | null;
+  rankBelow: number | null;
+}
+
+export async function getUserRank(userId: string): Promise<UserRank | null> {
+  const all = await getLeaderboard(0);
+  const index = all.findIndex((e) => e.userId === userId);
+
+  if (index === -1) return null;
+
+  const entry = all[index];
+  const rankAbove = index > 0 ? all[index - 1] : null;
+  const rankBelow = index < all.length - 1 ? all[index + 1] : null;
+
+  return {
+    rank: index + 1,
+    totalUsers: all.length,
+    displayName: entry.displayName,
+    username: entry.username,
+    avatar: entry.avatar,
+    lifetimeTokens: entry.lifetimeTokens,
+    currentStreak: entry.currentStreak,
+    tokensBehind: rankAbove
+      ? rankAbove.lifetimeTokens - entry.lifetimeTokens
+      : null,
+    tokensAhead: rankBelow
+      ? entry.lifetimeTokens - rankBelow.lifetimeTokens
+      : null,
+    rankAbove: rankAbove ? index : null,
+    rankBelow: rankBelow ? index + 2 : null,
+  };
+}
