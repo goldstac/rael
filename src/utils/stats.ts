@@ -228,7 +228,7 @@ export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
       };
     })
     .sort((a, b) => b.lifetimeTokens - a.lifetimeTokens)
-    .slice(0, limit);
+    .slice(0, limit || undefined);
 }
 
 export interface UserRank {
