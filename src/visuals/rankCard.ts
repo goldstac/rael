@@ -147,11 +147,13 @@ export async function renderRankCard(opts: RankCardOptions): Promise<Buffer> {
 
     // Large rank number
     const { rank } = opts.rank;
+    const rankStr = `#${rank}`;
+    const rankFontSize = rankStr.length > 3 ? 72 : 96;
     ctx.fillStyle = rankColor(rank);
-    ctx.font = "120px InterBold";
+    ctx.font = `${rankFontSize}px InterBold`;
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
-    ctx.fillText(`#${rank}`, padX, HEIGHT / 2);
+    ctx.fillText(rankStr, padX, HEIGHT / 2);
 
     // Divider
     const divX = padX + 200;
