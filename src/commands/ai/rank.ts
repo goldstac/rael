@@ -7,11 +7,21 @@ export default {
   name: "rank",
   description: "Show your rank on the leaderboard",
   aliases: ["myrank"],
-  async execute({ message }: CommandCallbackOpts) {
+  async execute({ message, args }: CommandCallbackOpts) {
     if (message.author.bot) return;
 
     try {
-      const target = message.mentions?.users?.first() || message.author;
+      const hasMention = message.mentions?.users?.first();
+      const hasArgs = args.length > 0;
+
+      if (hasArgs && !hasMention) {
+        await message.reply(
+          "Use `$rank` to see your rank, or `$rank @user` to see someone else's.",
+        );
+        return;
+      }
+
+      const target = hasMention || message.author;
       const userId = target.id;
 
       const rankData = await getUserRank(userId);
