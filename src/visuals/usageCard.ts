@@ -258,14 +258,6 @@ export async function renderUsageCard(opts: UsageCardOptions): Promise<Buffer> {
       value: opts.active ? formatDuration(opts.timeRemainingMs || 0) : "—",
       label: "session resets in",
     },
-    // {
-    //   value: opts.active ? String(opts.messageCount ?? 0) : "—",
-    //   label: "messages",
-    // },
-    // {
-    //   value: opts.active ? String(opts.imageCount ?? 0) : "—",
-    //   label: "images",
-    // },
   ];
 
   const colWidth = (WIDTH - padX * 2) / metrics.length;
