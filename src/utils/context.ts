@@ -36,6 +36,8 @@ export function addToContext(
   if (history.length > MAX_MESSAGES) {
     history.shift();
   }
+
+  CONTEXTS.set(userId, history);
 }
 
 export function resetContext(userId: string) {
