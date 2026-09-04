@@ -5,8 +5,7 @@ import { fileURLToPath } from "url";
 import data from "../../../config.json" with { type: "json" };
 import getAllFiles from "../../utils/getAllFiles.ts";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const { prefixes, devs } = data;
 
