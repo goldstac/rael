@@ -13,9 +13,9 @@ export default {
     const isSelf = targetUser.id === message.author.id;
 
     if (!isSelf) {
-      const hasPerms = message.member?.permissions.has(
-        PermissionFlagsBits.ManageMessages,
-      );
+      const hasPerms =
+        message.member?.permissions.has(PermissionFlagsBits.ManageMessages) ??
+        false;
       if (!hasPerms) {
         await message.reply(
           "You need the **Manage Messages** permission to reset someone else's context.",
