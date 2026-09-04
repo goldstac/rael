@@ -69,7 +69,7 @@ export default async (client: Client, message: Message) => {
     if (commandObject.permissionsRequired?.length) {
       for (const permission of commandObject.permissionsRequired) {
         if (!message?.member?.permissions?.has(permission)) {
-          message.reply("Not enough permissions to run this command.");
+          await message.reply("Not enough permissions to run this command.");
           return;
         }
       }
