@@ -38,10 +38,6 @@ export default {
         return;
       }
 
-      const member = message.guild
-        ? await message.guild.members.fetch(target.id).catch(() => null)
-        : null;
-
       const avatarUrl =
         target.displayAvatarURL({ extension: "png", size: 256 }) || null;
 
