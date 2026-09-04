@@ -6,15 +6,32 @@ import { renderUsageCard } from "../../visuals/usageCard.ts";
 
 export default {
   name: "usage",
-  description: "Show your current token usage",
+  description: "Show current token usage for yourself or another user",
   aliases: ["tokens", "limit", "session"],
-  async execute({ message }: CommandCallbackOpts) {
+  async execute({ message, args }: CommandCallbackOpts) {
     if (message.author.bot) return;
 
-    const userId = message.author.id;
-    const displayName = message.author.displayName || message.author.username;
-    const handle = `@${message.author.username}`;
-    const avatarUrl = message.author.displayAvatarURL({
+    const hasMention = message.mentions?.users?.first();
+    const hasArgs = args && args.length > 0;
+
+    if (hasArgs && !hasMention) {
+      await message.reply(
+        "Use `$usage` to see your usage, or `$usage @user` to see someone else's.",
+      );
+      return;
+    }
+
+    const target = hasMention || message.author;
+    const userId = target.id;
+
+    const member = message.guild
+      ? await message.guild.members.fetch(target.id).catch(() => null)
+      : null;
+
+    const displayName =
+      member?.displayName || target.displayName || target.username;
+    const handle = `@${target.username}`;
+    const avatarUrl = target.displayAvatarURL({
       extension: "png",
       size: 256,
     });
@@ -38,10 +55,12 @@ export default {
 
     try {
       const buffer = await renderUsageCard(cardOptions);
-      const attachment = new AttachmentBuilder(buffer, { name: "usage.png" });
+      const attachment = new AttachmentBuilder(buffer, {
+        name: `usage-${target.id}.png`,
+      });
       await message.reply({ files: [attachment] });
     } catch (err) {
-      console.error(err);
+      console.error("[Usage] Command error:", err);
       await message.reply("Couldn't generate usage card.");
     }
   },
