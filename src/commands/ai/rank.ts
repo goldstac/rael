@@ -38,8 +38,10 @@ export default {
         return;
       }
 
-      const avatarUrl =
-        target.displayAvatarURL({ extension: "png", size: 256 }) || null;
+      const avatarUrl = target.displayAvatarURL({
+        extension: "png",
+        size: 256,
+      });
 
       const buffer = await renderRankCard({
         rank: rankData,
