@@ -38,7 +38,7 @@ export default async (client: Client, message: Message) => {
     );
 
     const args = message.content.slice(prefix.length).trim().split(/ +/);
-    const commandName = args?.shift()?.toLowerCase();
+    const commandName = args.shift()?.toLowerCase();
     const commandsPath = path.join(__dirname, "..", "..", "commands");
 
     const commandsCategories = getAllFiles(commandsPath, true);
