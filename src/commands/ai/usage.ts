@@ -11,7 +11,7 @@ export default {
   async execute({ message }: CommandCallbackOpts) {
     if (message.author.bot) return;
 
-    if (message.mentions.users.first()) {
+    if (message.mentions?.users?.first()) {
       await message.reply("You can only view your own usage.");
       return;
     }
